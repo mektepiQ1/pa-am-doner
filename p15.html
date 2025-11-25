@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paşam Döner - Sipariş Sistemi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* PERFORMANS OPTİMİZASYONLARI */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Hardware acceleration için optimize edilmiş transform */
+        .container, .menu-section, .drawer, .drawer-content {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000;
+        }
+
+        /* Sadece gerekli elementlere will-change */
+        .drawer-content {
+            will-change: max-height;
+        }
+
+        body {
+            background: linear-gradient(-45deg, #0a0a2a, #1a1a4a, #0f0f3a, #2a2a6a);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            color: #fff;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 5px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body.outdoor-theme {
+            background: linear-gradient(-45deg, #1a1a1a, #2c2c2c, #1f1f1f, #333);
+        }
+
+        body.onceden-theme {
+            background: linear-gradient(-45deg, #1a2a1a, #2a3a2a, #1a2a1a, #2a4a2a);
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 5px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER STYLES */
+        header {
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 50%, #0066ff 100%);
+            color: white;
+            padding: 12px 0;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+            border: 2px solid #00ccff;
+        }
+
+        .outdoor-theme header {
+            background: linear-gradient(135deg, #ff4500 0%, #ff8c00 50%, #ff4500 100%);
+            box-shadow: 0 4px 12px rgba(255, 69, 0, 0.4);
+            border: 2px solid #ff8c00;
+        }
+
+        .onceden-theme header {
+            background: linear-gradient(135deg, #2a5a2a 0%, #3a7a3a 50%, #2a5a2a 100%);
+            box-shadow: 0 4px 12px rgba(42, 90, 42, 0.4);
+            border: 2px solid #3a7a3a;
+        }
+
+        .blue-fire-text {
+            font-size: 1.4rem;
+            margin-bottom: 3px;
+            text-shadow: 0 0 10px #0066ff, 0 0 20px #0066ff;
+            animation: blue-flicker 1.5s infinite alternate;
+            font-weight: 1000;
+            letter-spacing: 1px;
+            text-align: center;
+            line-height: 1.2;
+            padding: 0 8px;
+        }
+
+        /* ORDER TYPE SECTION */
+        .order-type-section {
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f3a 100%);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            border: 1px solid #2a2a6a;
+        }
+
+        .outdoor-theme .order-type-section {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+            border: 1px solid #444;
+        }
+
+        .onceden-theme .order-type-section {
+            background: linear-gradient(135deg, #2a5a2a 0%, #1a4a1a 100%);
+            border: 1px solid #3a7a3a;
+        }
+
+        .order-type-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .order-type-btn {
+            background: linear-gradient(135deg, #2a2a6a 0%, #1a1a5a 100%);
+            color: white;
+            border: 2px solid #2a2a6a;
+            padding: 12px 8px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 50px;
+        }
+
+        .order-type-btn.selected {
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+            border-color: #00ccff;
+            box-shadow: 0 0 12px rgba(0, 204, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 1rem;
+            color: #00ccff;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #2a2a6a;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-icon {
+            font-size: 1.2rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+        }
+
+        /* DRAWER STYLES */
+        .drawer {
+            margin-bottom: 8px;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .drawer-header {
+            background: linear-gradient(135deg, #2a2a6a 0%, #1a1a5a 100%);
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #3a3a7a;
+        }
+
+        .drawer-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drawer-icon {
+            font-size: 0.9rem;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #00ccff;
+        }
+
+        .drawer.open .drawer-icon {
+            transform: rotate(180deg);
+        }
+
+        .drawer-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #2a2a6a 0%, #1a1a5a 100%);
+        }
+
+        .drawer.open .drawer-content {
+            max-height: 800px;
+            padding: 12px;
+        }
+
+        /* MENU ITEMS */
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px;
+        }
+
+        .menu-item {
+            background: linear-gradient(135deg, #2a2a6a 0%, #1a1a5a 100%);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid #3a3a7a;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+
+        .item-icon {
+            font-size: 0.9rem;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+        }
+
+        .item-price {
+            color: #00ccff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-shadow: 0 0 8px rgba(0, 204, 255, 0.6);
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quantity-btn {
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 102, 255, 0.4);
+            font-weight: 600;
+        }
+
+        .quantity {
+            font-size: 0.9rem;
+            font-weight: 700;
+            min-width: 24px;
+            text-align: center;
+            color: #fff;
+        }
+
+        /* INPUT SECTIONS */
+        .input-section {
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f3a 100%);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            border: 1px solid #2a2a6a;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.85rem;
+            border: 1px solid #2a2a6a;
+            border-radius: 6px;
+            background: #1a1a5a;
+            color: #fff;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #00ccff;
+            box-shadow: 0 0 0 2px rgba(0, 204, 255, 0.2);
+        }
+
+        /* PAYMENT SECTION */
+        .payment-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .payment-btn {
+            background: linear-gradient(135deg, #2a2a6a 0%, #1a1a5a 100%);
+            color: white;
+            border: 2px solid #2a2a6a;
+            padding: 10px 8px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 45px;
+        }
+
+        .payment-btn.selected {
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+            border-color: #00ccff;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+        }
+
+        /* SUBMIT BUTTON */
+        .submit-btn {
+            background: linear-gradient(135deg, #0066ff 0%, #00ccff 100%);
+            color: white;
+            border: none;
+            padding: 14px 16px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.6);
+            margin-top: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 50px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 102, 255, 0.8);
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            margin-top: auto;
+            padding: 10px;
+            color: #888;
+            font-size: 0.75rem;
+            background: linear-gradient(135deg, #1a1a4a 0%, #0f0f3a 100%);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid #2a2a6a;
+            font-weight: 600;
+        }
+
+        /* SOON LABEL */
+        .soon-label {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 4px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .menu-items {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-type-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .payment-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="blue-fire-text">Kadirli Paşam Döner</h1>
+        </header>
+
+        <!-- Sipariş Türü Seçimi -->
+        <section class="order-type-section">
+            <h2 class="section-title">
+                <i class="fas fa-clipboard-list title-icon"></i>
+                Sipariş Türünü Seçiniz
+            </h2>
+            <div class="order-type-buttons">
+                <button class="order-type-btn" id="icmekan-btn">
+                    <i class="fas fa-store-alt"></i>
+                    İç Mekan
+                </button>
+                <button class="order-type-btn" id="dismekan-btn">
+                    <i class="fas fa-truck"></i>
+                    Dış Mekan
+                </button>
+                <button class="order-type-btn" id="onceden-btn">
+                    <i class="fas fa-clock"></i>
+                    Önceden Sipariş
+                </button>
+            </div>
+        </section>
+
+        <!-- İç Mekana Gelmeden Önce Sipariş Bölümü -->
+        <section class="menu-section" id="onceden-section">
+            <h2 class="section-title">
+                <i class="fas fa-clock title-icon"></i>
+                İç Mekana Gelmeden Önce Sipariş
+            </h2>
+            
+            <!-- Müşteri Bilgileri -->
+            <div class="input-section">
+                <h3 class="section-title" style="font-size: 0.9rem; margin-bottom: 8px;">
+                    <i class="fas fa-user"></i>
+                    Müşteri Bilgileri
+                </h3>
+                <div class="input-row">
+                    <input type="text" class="input-field" id="onceden-name" placeholder="İsminiz">
+                    <input type="text" class="input-field" id="onceden-surname" placeholder="Soyisminiz">
+                </div>
+                <div class="info-message" style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; text-align: center;">
+                    <p style="font-size: 0.8rem; color: #ffffff; font-weight: 600;">
+                        <i class="fas fa-info-circle"></i>
+                        İç mekana gelmeden 5-10 dk önce siparişinizi buradan verebilirsiniz
+                    </p>
+                </div>
+            </div>
+
+            <!-- Döner Çeşitleri -->
+            <div class="drawer" id="onceden-doner-drawer">
+                <div class="drawer-header">
+                    <div class="drawer-title">
+                        <i class="fas fa-utensils"></i>
+                        Döner Çeşitleri
+                    </div>
+                    <div class="drawer-icon">▼</div>
+                </div>
+                <div class="drawer-content">
+                    <div class="menu-items">
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-bread-slice item-icon"></i>
+                                    Tek Lavaş Döner
+                                </div>
+                                <div class="item-price" id="onceden-tek-doner-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-tek-doner">-</button>
+                                <span class="quantity" id="onceden-tek-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-tek-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-bread-slice item-icon"></i>
+                                    Çift Lavaş Döner
+                                </div>
+                                <div class="item-price" id="onceden-cift-doner-price">110 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-cift-doner">-</button>
+                                <span class="quantity" id="onceden-cift-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-cift-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-hamburger item-icon"></i>
+                                    Burger Tavuk Döner
+                                </div>
+                                <div class="item-price" id="onceden-burger-tavuk-doner-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-burger-tavuk-doner">-</button>
+                                <span class="quantity" id="onceden-burger-tavuk-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-burger-tavuk-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-drumstick-bite item-icon"></i>
+                                    Zurna
+                                </div>
+                                <div class="item-price" id="onceden-zurna-price">180 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-zurna">-</button>
+                                <span class="quantity" id="onceden-zurna-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-zurna">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-cheese item-icon"></i>
+                                    Sütlü ekmek
+                                </div>
+                                <div class="item-price" id="onceden-sutlu-ekmek-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-sutlu-ekmek">-</button>
+                                <span class="quantity" id="onceden-sutlu-ekmek-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-sutlu-ekmek">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-utensil-spoon item-icon"></i>
+                                    İçi 1 buçuk döner
+                                </div>
+                                <div class="item-price" id="onceden-ici-bucuk-doner-price">180 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-ici-bucuk-doner">-</button>
+                                <span class="quantity" id="onceden-ici-bucuk-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-ici-bucuk-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Ekstreler -->
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-french-fries item-icon"></i>
+                                    Patates Kızartması
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-patates">-</button>
+                                <span class="quantity" id="onceden-patates-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-patates">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-ring item-icon"></i>
+                                    Soğan Halkası
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-sogan">-</button>
+                                <span class="quantity" id="onceden-sogan-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-sogan">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-hamburger item-icon"></i>
+                                    Burger Et
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-burger-et">-</button>
+                                <span class="quantity" id="onceden-burger-et-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-burger-et">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İçecekler -->
+            <div class="drawer" id="onceden-icecek-drawer">
+                <div class="drawer-header">
+                    <div class="drawer-title">
+                        <i class="fas fa-wine-bottle"></i>
+                        İçecekler
+                    </div>
+                    <div class="drawer-icon">▼</div>
+                </div>
+                <div class="drawer-content">
+                    <div class="menu-items">
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-cocktail item-icon"></i>
+                                    Kola
+                                </div>
+                                <div class="item-price" id="onceden-kola-price">40 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-kola">-</button>
+                                <span class="quantity" id="onceden-kola-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-kola">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-glass-whiskey item-icon"></i>
+                                    Büyük Ayran
+                                </div>
+                                <div class="item-price" id="onceden-ayran-price">20 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-ayran">-</button>
+                                <span class="quantity" id="onceden-ayran-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-ayran">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-wine-bottle item-icon"></i>
+                                    Şalgam
+                                </div>
+                                <div class="item-price" id="onceden-salgam-price">20 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-salgam">-</button>
+                                <span class="quantity" id="onceden-salgam-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-salgam">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-tint item-icon"></i>
+                                    Su
+                                </div>
+                                <div class="item-price" id="onceden-su-price">10 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="onceden-su">-</button>
+                                <span class="quantity" id="onceden-su-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="onceden-su">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Normal İç Mekan ve Dış Mekan Siparişi -->
+        <section class="menu-section" id="doner-section">
+            <h2 class="section-title">
+                <i class="fas fa-utensils title-icon"></i>
+                Döner Çeşitlerimiz
+            </h2>
+            <div class="drawer" id="doner-drawer">
+                <div class="drawer-header">
+                    <div class="drawer-title">
+                        <i class="fas fa-utensils"></i>
+                        Döner Çeşitleri
+                    </div>
+                    <div class="drawer-icon">▼</div>
+                </div>
+                <div class="drawer-content">
+                    <div class="menu-items">
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-bread-slice item-icon"></i>
+                                    Tek Lavaş Döner
+                                </div>
+                                <div class="item-price" id="tek-doner-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="tek-doner">-</button>
+                                <span class="quantity" id="tek-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="tek-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-bread-slice item-icon"></i>
+                                    Çift Lavaş Döner
+                                </div>
+                                <div class="item-price" id="cift-doner-price">110 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="cift-doner">-</button>
+                                <span class="quantity" id="cift-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="cift-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-hamburger item-icon"></i>
+                                    Burger Tavuk Döner
+                                </div>
+                                <div class="item-price" id="burger-tavuk-doner-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="burger-tavuk-doner">-</button>
+                                <span class="quantity" id="burger-tavuk-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="burger-tavuk-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-drumstick-bite item-icon"></i>
+                                    Zurna
+                                </div>
+                                <div class="item-price" id="zurna-price">180 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="zurna">-</button>
+                                <span class="quantity" id="zurna-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="zurna">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-cheese item-icon"></i>
+                                    Sütlü ekmek
+                                </div>
+                                <div class="item-price" id="sutlu-ekmek-price">100 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="sutlu-ekmek">-</button>
+                                <span class="quantity" id="sutlu-ekmek-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="sutlu-ekmek">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-utensil-spoon item-icon"></i>
+                                    İçi 1 buçuk döner
+                                </div>
+                                <div class="item-price" id="ici-bucuk-doner-price">180 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="ici-bucuk-doner">-</button>
+                                <span class="quantity" id="ici-bucuk-doner-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="ici-bucuk-doner">+</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Ekstreler -->
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-french-fries item-icon"></i>
+                                    Patates Kızartması
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="patates">-</button>
+                                <span class="quantity" id="patates-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="patates">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-ring item-icon"></i>
+                                    Soğan Halkası
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="sogan">-</button>
+                                <span class="quantity" id="sogan-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="sogan">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-hamburger item-icon"></i>
+                                    Burger Et
+                                </div>
+                                <div class="soon-label">Yakında Sizlerle</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="burger-et">-</button>
+                                <span class="quantity" id="burger-et-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="burger-et">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="menu-section" id="icecek-section">
+            <h2 class="section-title">
+                <i class="fas fa-wine-bottle title-icon"></i>
+                İçeceklerimiz
+            </h2>
+            <div class="drawer" id="icecek-drawer">
+                <div class="drawer-header">
+                    <div class="drawer-title">
+                        <i class="fas fa-wine-bottle"></i>
+                        İçecekler
+                    </div>
+                    <div class="drawer-icon">▼</div>
+                </div>
+                <div class="drawer-content">
+                    <div class="menu-items">
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-cocktail item-icon"></i>
+                                    Kola
+                                </div>
+                                <div class="item-price" id="kola-price">40 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="kola">-</button>
+                                <span class="quantity" id="kola-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="kola">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-glass-whiskey item-icon"></i>
+                                    Büyük Ayran
+                                </div>
+                                <div class="item-price" id="ayran-price">20 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="ayran">-</button>
+                                <span class="quantity" id="ayran-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="ayran">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-wine-bottle item-icon"></i>
+                                    Şalgam
+                                </div>
+                                <div class="item-price" id="salgam-price">20 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="salgam">-</button>
+                                <span class="quantity" id="salgam-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="salgam">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <i class="fas fa-tint item-icon"></i>
+                                    Su
+                                </div>
+                                <div class="item-price" id="su-price">10 ₺</div>
+                            </div>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn minus" data-item="su">-</button>
+                                <span class="quantity" id="su-quantity">0</span>
+                                <button class="quantity-btn plus" data-item="su">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Masa Numarası -->
+        <section class="input-section" id="table-section">
+            <h2 class="section-title">
+                <i class="fas fa-chair title-icon"></i>
+                Masa Bilgileri
+            </h2>
+            <input type="text" class="input-field" id="table-number" placeholder="Masa numaranızı yazınız">
+        </section>
+
+        <!-- Adres Bilgileri -->
+        <section class="input-section" id="address-section">
+            <h2 class="section-title">
+                <i class="fas fa-map-marker-alt title-icon"></i>
+                Adres Bilgileri
+            </h2>
+            <div class="input-row">
+                <input type="text" class="input-field" id="name" placeholder="İsminiz">
+                <input type="text" class="input-field" id="surname" placeholder="Soyisminiz">
+            </div>
+            <input type="text" class="input-field" id="phone" placeholder="Telefon numaranız" style="margin-bottom: 8px;">
+            <input type="text" class="input-field" id="address" placeholder="Adresiniz">
+        </section>
+
+        <!-- Notlar -->
+        <section class="input-section">
+            <h2 class="section-title">
+                <i class="fas fa-sticky-note title-icon"></i>
+                Özel Notlar
+            </h2>
+            <textarea class="input-field" id="order-notes" placeholder="Döneriniz nasıl olsun? (Örneğin: full olsun, ketçap olmasın)" style="height: 60px; resize: vertical;"></textarea>
+        </section>
+
+        <!-- Ödeme -->
+        <section class="input-section">
+            <h2 class="section-title">
+                <i class="fas fa-credit-card title-icon"></i>
+                Ödeme Şekli
+            </h2>
+            <div class="payment-buttons">
+                <button class="payment-btn" data-payment="Kart">
+                    <i class="fas fa-credit-card"></i>
+                    Kart ile Ödeme
+                </button>
+                <button class="payment-btn" data-payment="Nakit">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Nakit Ödeme
+                </button>
+            </div>
+        </section>
+
+        <!-- Sipariş Özeti -->
+        <section class="input-section">
+            <h2 class="section-title">
+                <i class="fas fa-receipt title-icon"></i>
+                Sipariş Özeti
+            </h2>
+            <div id="summary-items"></div>
+            <div class="summary-total" style="display: flex; justify-content: space-between; padding: 12px 0; font-size: 1.1rem; font-weight: 700; border-top: 1px solid #2a2a6a; margin-top: 8px;">
+                <span>Toplam:</span>
+                <span id="total-price">0 ₺</span>
+            </div>
+            <div class="order-time" id="order-time" style="text-align: center; font-size: 0.8rem; color: #aaa; margin-top: 8px;"></div>
+        </section>
+
+        <button class="submit-btn" id="submit-order">
+            <i class="fas fa-paper-plane"></i>
+            Siparişi Gönder
+        </button>
+
+        <footer>
+            <p>Kadirli Paşam Döner - Lezzetin Adresi</p>
+        </footer>
+    </div>
+
+    <script>
+        // Performans için optimize edilmiş JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sayfa tamamen yüklendikten sonra uygulamayı başlat
+            if (document.readyState === 'complete') {
+                initializeApp();
+            } else {
+                window.addEventListener('load', initializeApp);
+            }
+        });
+
+        function initializeApp() {
+            console.log('Uygulama başlatılıyor...');
+            
+            // Değişkenler
+            const state = {
+                prices: {
+                    icmekan: {
+                        'tek-doner': 100, 'cift-doner': 110, 'burger-tavuk-doner': 100,
+                        'zurna': 180, 'sutlu-ekmek': 100, 'ici-bucuk-doner': 180,
+                        'kola': 40, 'ayran': 20, 'salgam': 20, 'su': 10,
+                        'patates': 0, 'sogan': 0, 'burger-et': 0
+                    },
+                    dismekan: {
+                        'tek-doner': 120, 'cift-doner': 130, 'burger-tavuk-doner': 120,
+                        'zurna': 200, 'sutlu-ekmek': 120, 'ici-bucuk-doner': 200,
+                        'kola': 40, 'ayran': 30, 'salgam': 20, 'su': 10,
+                        'patates': 0, 'sogan': 0, 'burger-et': 0
+                    },
+                    onceden: {
+                        'onceden-tek-doner': 100, 'onceden-cift-doner': 110, 'onceden-burger-tavuk-doner': 100,
+                        'onceden-zurna': 180, 'onceden-sutlu-ekmek': 100, 'onceden-ici-bucuk-doner': 180,
+                        'onceden-kola': 40, 'onceden-ayran': 20, 'onceden-salgam': 20, 'onceden-su': 10,
+                        'onceden-patates': 0, 'onceden-sogan': 0, 'onceden-burger-et': 0
+                    }
+                },
+                quantities: {},
+                selectedPayment: '',
+                orderType: 'icmekan',
+                currentPrices: {}
+            };
+
+            // Miktarları başlat
+            initializeQuantities();
+
+            // Event listener'ları kur
+            setupEventListeners();
+
+            // Başlangıç durumunu ayarla
+            setOrderType('icmekan');
+            updateOrderSummary();
+
+            console.log('Uygulama başlatıldı');
+
+            function initializeQuantities() {
+                // Tüm ürünler için miktarları 0 olarak başlat
+                const allProducts = [
+                    'tek-doner', 'cift-doner', 'burger-tavuk-doner', 'zurna', 'sutlu-ekmek', 'ici-bucuk-doner',
+                    'kola', 'ayran', 'salgam', 'su', 'patates', 'sogan', 'burger-et',
+                    'onceden-tek-doner', 'onceden-cift-doner', 'onceden-burger-tavuk-doner', 'onceden-zurna',
+                    'onceden-sutlu-ekmek', 'onceden-ici-bucuk-doner', 'onceden-kola', 'onceden-ayran',
+                    'onceden-salgam', 'onceden-su', 'onceden-patates', 'onceden-sogan', 'onceden-burger-et'
+                ];
+
+                allProducts.forEach(product => {
+                    state.quantities[product] = 0;
+                });
+            }
+
+            function setupEventListeners() {
+                // Drawer toggle
+                document.querySelectorAll('.drawer-header').forEach(header => {
+                    header.addEventListener('click', function() {
+                        const drawer = this.parentElement;
+                        drawer.classList.toggle('open');
+                    });
+                });
+
+                // Quantity buttons
+                document.querySelectorAll('.quantity-btn').forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const item = this.getAttribute('data-item');
+                        const isPlus = this.classList.contains('plus');
+                        
+                        if (isPlus) {
+                            state.quantities[item]++;
+                        } else if (state.quantities[item] > 0) {
+                            state.quantities[item]--;
+                        }
+                        
+                        document.getElementById(`${item}-quantity`).textContent = state.quantities[item];
+                        updateOrderSummary();
+                    });
+                });
+
+                // Payment buttons
+                document.querySelectorAll('.payment-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.payment-btn').forEach(btn => {
+                            btn.classList.remove('selected');
+                        });
+                        this.classList.add('selected');
+                        state.selectedPayment = this.getAttribute('data-payment');
+                        updateOrderSummary();
+                    });
+                });
+
+                // Order type buttons
+                document.getElementById('icmekan-btn').addEventListener('click', () => setOrderType('icmekan'));
+                document.getElementById('dismekan-btn').addEventListener('click', () => setOrderType('dismekan'));
+                document.getElementById('onceden-btn').addEventListener('click', () => setOrderType('onceden'));
+
+                // Submit order
+                document.getElementById('submit-order').addEventListener('click', submitOrder);
+            }
+
+            function setOrderType(type) {
+                state.orderType = type;
+                
+                // UI güncelleme
+                document.querySelectorAll('.order-type-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                document.getElementById(`${type}-btn`).classList.add('selected');
+                
+                // Fiyatları güncelle
+                state.currentPrices = state.prices[type];
+                updatePrices();
+                
+                // Bölümleri göster/gizle
+                updateSectionVisibility();
+                
+                // Tema değişikliği
+                updateTheme();
+                
+                updateOrderSummary();
+            }
+
+            function updateSectionVisibility() {
+                const sections = {
+                    'onceden-section': state.orderType === 'onceden',
+                    'doner-section': state.orderType !== 'onceden',
+                    'icecek-section': state.orderType !== 'onceden',
+                    'table-section': state.orderType === 'icmekan',
+                    'address-section': state.orderType === 'dismekan'
+                };
+
+                Object.entries(sections).forEach(([id, visible]) => {
+                    document.getElementById(id).style.display = visible ? 'block' : 'none';
+                });
+            }
+
+            function updateTheme() {
+                document.body.classList.remove('outdoor-theme', 'onceden-theme');
+                if (state.orderType === 'dismekan') {
+                    document.body.classList.add('outdoor-theme');
+                } else if (state.orderType === 'onceden') {
+                    document.body.classList.add('onceden-theme');
+                }
+            }
+
+            function updatePrices() {
+                for (const item in state.currentPrices) {
+                    const priceElement = document.getElementById(`${item}-price`);
+                    if (priceElement) {
+                        priceElement.textContent = `${state.currentPrices[item]} ₺`;
+                    }
+                }
+            }
+
+            function updateOrderSummary() {
+                const summaryItems = document.getElementById('summary-items');
+                const orderTime = document.getElementById('order-time');
+                let total = 0;
+                let summaryHTML = '';
+                
+                // Ürünleri ekle
+                for (const item in state.quantities) {
+                    if (state.quantities[item] > 0) {
+                        const itemTotal = state.quantities[item] * (state.currentPrices[item] || 0);
+                        total += itemTotal;
+                        
+                        const productName = getProductName(item);
+                        summaryHTML += `
+                            <div class="summary-item" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a2a6a;">
+                                <span>${productName} (${state.quantities[item]} adet)</span>
+                                <span>${itemTotal} ₺</span>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Ödeme şeklini ekle
+                if (state.selectedPayment) {
+                    summaryHTML += `
+                        <div class="summary-item" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a2a6a;">
+                            <span>Ödeme Şekli: ${state.selectedPayment}</span>
+                            <span>0 ₺</span>
+                        </div>
+                    `;
+                }
+                
+                summaryItems.innerHTML = summaryHTML;
+                document.getElementById('total-price').textContent = `${total} ₺`;
+                orderTime.textContent = `Sipariş Zamanı: ${getCurrentDateTime()}`;
+            }
+
+            function getProductName(item) {
+                const names = {
+                    'tek-doner': 'Tek Lavaş Döner', 'cift-doner': 'Çift Lavaş Döner',
+                    'burger-tavuk-doner': 'Burger Tavuk Döner', 'zurna': 'Zurna',
+                    'sutlu-ekmek': 'Sütlü ekmek', 'ici-bucuk-doner': 'İçi 1 buçuk döner',
+                    'kola': 'Kola', 'ayran': 'Büyük Ayran', 'salgam': 'Şalgam', 'su': 'Su',
+                    'patates': 'Patates Kızartması', 'sogan': 'Soğan Halkası', 'burger-et': 'Burger Et',
+                    'onceden-tek-doner': 'Tek Lavaş Döner', 'onceden-cift-doner': 'Çift Lavaş Döner',
+                    'onceden-burger-tavuk-doner': 'Burger Tavuk Döner', 'onceden-zurna': 'Zurna',
+                    'onceden-sutlu-ekmek': 'Sütlü ekmek', 'onceden-ici-bucuk-doner': 'İçi 1 buçuk döner',
+                    'onceden-kola': 'Kola', 'onceden-ayran': 'Büyük Ayran', 'onceden-salgam': 'Şalgam', 
+                    'onceden-su': 'Su', 'onceden-patates': 'Patates Kızartması', 'onceden-sogan': 'Soğan Halkası', 
+                    'onceden-burger-et': 'Burger Et'
+                };
+                return names[item] || item;
+            }
+
+            function getCurrentDateTime() {
+                const now = new Date();
+                return `${now.toLocaleDateString('tr-TR')} ${now.toLocaleTimeString('tr-TR')}`;
+            }
+
+            function submitOrder() {
+                // Validasyon
+                if (!validateForm()) return;
+                
+                // Sipariş mesajını hazırla ve gönder
+                const orderMessage = prepareOrderMessage();
+                sendWhatsAppMessage(orderMessage);
+            }
+
+            function validateForm() {
+                // Validasyon kuralları
+                const validations = {
+                    'icmekan': () => !document.getElementById('table-number').value.trim() && 'Lütfen masa numaranızı giriniz.',
+                    'dismekan': () => {
+                        const fields = ['name', 'surname', 'phone', 'address'];
+                        for (const field of fields) {
+                            if (!document.getElementById(field).value.trim()) {
+                                return 'Lütfen tüm adres bilgilerinizi doldurunuz.';
+                            }
+                        }
+                        return null;
+                    },
+                    'onceden': () => {
+                        const fields = ['onceden-name', 'onceden-surname'];
+                        for (const field of fields) {
+                            if (!document.getElementById(field).value.trim()) {
+                                return 'Lütfen isim ve soyisminizi giriniz.';
+                            }
+                        }
+                        return null;
+                    }
+                };
+
+                const error = validations[state.orderType]();
+                if (error) {
+                    alert(error);
+                    return false;
+                }
+
+                if (!state.selectedPayment) {
+                    alert('Lütfen ödeme şeklini seçiniz.');
+                    return false;
+                }
+
+                let hasItems = Object.values(state.quantities).some(qty => qty > 0);
+                if (!hasItems) {
+                    alert('Lütfen en az bir ürün seçiniz.');
+                    return false;
+                }
+
+                return true;
+            }
+
+            function prepareOrderMessage() {
+                let message = '';
+                const orderTypes = {
+                    'icmekan': 'İç Mekan Siparişi',
+                    'dismekan': 'Dış Mekan Siparişi', 
+                    'onceden': 'İç Mekana Gelmeden Önce Sipariş'
+                };
+
+                message += `${orderTypes[state.orderType]} Döner Siparişi:\n\n`;
+
+                // Müşteri bilgileri
+                if (state.orderType === 'icmekan') {
+                    message += `Masa No: ${document.getElementById('table-number').value}\n\n`;
+                } else if (state.orderType === 'dismekan') {
+                    const name = document.getElementById('name').value;
+                    const surname = document.getElementById('surname').value;
+                    const phone = document.getElementById('phone').value;
+                    const address = document.getElementById('address').value;
+                    message += `İsim Soyisim: ${name} ${surname}\n`;
+                    message += `Telefon: ${phone}\n`;
+                    message += `Adres: ${address}\n\n`;
+                } else if (state.orderType === 'onceden') {
+                    const name = document.getElementById('onceden-name').value;
+                    const surname = document.getElementById('onceden-surname').value;
+                    message += `İsim Soyisim: ${name} ${surname}\n\n`;
+                }
+
+                // Ürünler
+                for (const item in state.quantities) {
+                    if (state.quantities[item] > 0) {
+                        const price = state.currentPrices[item] || 0;
+                        message += `${getProductName(item)}: ${state.quantities[item]} adet - ${state.quantities[item] * price} ₺\n`;
+                    }
+                }
+
+                // Notlar
+                const notes = document.getElementById('order-notes').value;
+                if (notes.trim()) {
+                    message += `\nNot: ${notes}\n`;
+                }
+
+                // Ödeme ve toplam
+                message += `\nÖdeme Şekli: ${state.selectedPayment}\n`;
+                message += `Sipariş Zamanı: ${getCurrentDateTime()}\n\n`;
+
+                let total = 0;
+                for (const item in state.quantities) {
+                    if (state.quantities[item] > 0) {
+                        total += state.quantities[item] * (state.currentPrices[item] || 0);
+                    }
+                }
+                message += `Toplam: ${total} ₺`;
+
+                return message;
+            }
+
+            function sendWhatsAppMessage(message) {
+                const phoneNumber = "905557918718";
+                const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappURL, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
