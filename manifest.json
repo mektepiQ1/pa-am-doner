@@ -1,0 +1,22 @@
+{
+  "name": "Pazarcı Yönetim Sistemi",
+  "short_name": "Pazar Yönetim",
+  "description": "Mahalle pazarı esnafı için gelir, gider, stok ve kar/zarar takibi",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2E7D32",
+  "background_color": "#F5F5F5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "pazar.jpg",
+      "sizes": "64x64",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "pazar.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
